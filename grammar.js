@@ -1,4 +1,8 @@
 // https://openfga.dev/docs/configuration-language
+const DIGIT = /[0-9]/;
+const HEX_DIGIT = /[0-9a-fA-F]/;
+const EXPONENT = /[eE][+-]?[0-9]+/;
+
 const PREC = {
   primary: 7,
   unary: 6,
@@ -194,6 +198,10 @@ module.exports = grammar({
 
     _expression: ($) =>
       choice(
+        $.number_literal,
+        $.boolean_literal,
+        $.string_literal,
+        $.null_literal,
         // $.unary_expression,
         $.binary_expression,
         $.selector_expression,
@@ -201,6 +209,37 @@ module.exports = grammar({
         $.identifier,
         // slices?
       ),
+
+    number_literal: $ => choice(
+      $.float_literal,
+      $.int_literal,
+      $.uint_literal
+    ),
+
+    float_literal: $ => token(choice(
+      seq(repeat1(DIGIT), '.', repeat1(DIGIT), optional(EXPONENT)),
+      seq(repeat1(DIGIT), EXPONENT),
+      seq('.', repeat1(DIGIT), optional(EXPONENT))
+    )),
+
+    int_literal: $ => token(choice(
+      repeat1(DIGIT),
+      seq('0x', repeat1(HEX_DIGIT))
+    )),
+
+    uint_literal: $ => token(choice(
+      seq(repeat1(DIGIT), choice('u', 'U')),
+      seq('0x', repeat1(HEX_DIGIT), choice('u', 'U'))
+    )),
+
+    boolean_literal: $ => choice('true', 'false'),
+
+    null_literal: $ => 'null',
+
+    string_literal: $ => token(choice(
+      seq('"', repeat(choice(/[^"\\\n\r]/, /\\./)), '"'),
+      seq("'", repeat(choice(/[^'\\\n\r]/, /\\./)), "'")
+    )),
 
     identifier: ($) => /[a-zA-Z_-]+/,
 
